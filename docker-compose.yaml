@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  cache:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly
+    container_name: cache
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+    ulimits:
+      memlock: -1
+    ports:
+      - "6379:6379"
+    volumes:
+      - cache_data:/data
+
+  trivy:
+    image: aquasec/trivy:0.40.0
+    depends_on:
+      - cache
+    container_name: trivy
+    command: server --listen 0.0.0.0:8080 --cache-backend redis://cache:6379 --debug
+    ports:
+      - "8080:8080"
+
+volumes:
+  cache_data:
